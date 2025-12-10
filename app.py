@@ -2,7 +2,7 @@ import os
 import uuid
 import cv2
 import numpy as np
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, jsonify
 import warnings
 
 warnings.filterwarnings("ignore") # передаём бибилиотеке аргумент, чтобы при работе с программой если будет какая-то ошибка ой её скроет
@@ -21,7 +21,7 @@ def detect_polar_caps(image_path):
         # Загружаем изображение
         img = cv2.imread(image_path) # пытаемся подрузить фотографию из переменной image_path
         if img is None: # проверяем если не находят фото
-            return None, "Ошибка загрузки изображения" # возвращаем предупреждение
+            return None, "Ошибка загрузки изображения", [] # возвращаем предупреждение
 
         # Конвертируем в HSV для лучшего выделения льда
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -37,7 +37,7 @@ def detect_polar_caps(image_path):
         mask_white = cv2.inRange(hsv, lower_white, upper_white) # проверяем каждый пиксель попадёт ли наш диапазон, если не опадает - делает чёрным
         mask_blue = cv2.inRange(hsv, lower_blue, upper_blue) # тоже самое для голубого, если пиксель не подходит - становится чёрным
 
-        # Комбинируем маски
+        # Промежуточное изображение: маска льда
         ice_mask = cv2.bitwise_or(mask_white, mask_blue) # склеиваем все макси воедино (bitwise_or - функция объединения наших масок)
 
         # Морфологические операции для улучшения маски
@@ -80,10 +80,10 @@ def detect_polar_caps(image_path):
             'message': f"Обнаружено {len(ice_contours)} полярных шапок ({ice_percentage:.1f}% площади)"
         }
 
-        return result_img, analysis_result
+        return result_img, analysis_result, [mask_white, mask_blue, ice_mask]
 
     except Exception as e:
-        return None, f"Ошибка анализа: {str(e)}"
+        return None, f"Ошибка анализа: {str(e)}", []
 
 
 @app.route('/')
@@ -114,7 +114,7 @@ def analyze():
 
     try:
         # Анализ полярных шапок
-        result_img, analysis_result = detect_polar_caps(filepath)
+        result_img, analysis_result, intermediate_masks = detect_polar_caps(filepath)
 
         if result_img is None:
             flash(f'Ошибка анализа: {analysis_result}')
@@ -125,20 +125,37 @@ def analyze():
         result_path = os.path.join(UPLOAD_FOLDER, result_filename)
         cv2.imwrite(result_path, result_img)
 
+        # Сохраняем промежуточные изображения
+        intermediate_filenames = []
+        for i, mask in enumerate(intermediate_masks):
+            intermediate_filename = f"intermediate_{i}_{filename}"
+            intermediate_path = os.path.join(UPLOAD_FOLDER, intermediate_filename)
+            cv2.imwrite(intermediate_path, mask)
+            intermediate_filenames.append(intermediate_filename)
+
         return render_template('result.html',
                                has_caps=analysis_result['has_caps'],
                                cap_count=analysis_result['cap_count'],
                                ice_percentage=analysis_result['ice_percentage'],
                                message=analysis_result['message'],
-                               img_url=url_for('uploaded_file', filename=result_filename))
+                               img_url=url_for('uploaded_file', filename=result_filename),
+                               intermediate_urls=[url_for('uploaded_file', filename=f) for f in intermediate_filenames])
 
     except Exception as e:
         flash(f'Ошибка обработки: {str(e)}')
         return redirect(request.url)
 
 
+@app.route('/get_intermediate_images', methods=['GET'])
+def get_intermediate_images():
+    # Возвращает список промежуточных изображений (для AJAX)
+    # В реальном приложении лучше передавать идентификатор сессии или хранить в сессии
+    # Для упрощения возвращаем пустой список, так как изображения уже передаются в шаблоне
+    return jsonify({'urls': []})
+
+
 if __name__ == '__main__':
     print("=" * 50)
     print("🔍 Анализатор полярных шапок Марса")
     print("=" * 50)
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=True, host='127.0.0.1', port=5000)
