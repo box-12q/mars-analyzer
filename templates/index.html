@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Анализатор полярных шапок Марса</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        body { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(33, 150, 243, 0.2); padding: 40px; max-width: 500px; width: 100%; text-align: center; }
+        .logo { font-size: 48px; margin-bottom: 20px; }
+        h1 { color: #1976d2; font-weight: 500; font-size: 28px; margin-bottom: 10px; }
+        .subtitle { color: #666; font-weight: 300; margin-bottom: 30px; line-height: 1.5; }
+
+        .upload-area { border: 2px dashed #90caf9; border-radius: 15px; padding: 30px 20px; margin: 30px 0; transition: all 0.3s ease; background: #f8fdff; }
+        .upload-area:hover { border-color: #2196f3; background: #f3f9ff; }
+
+        .file-input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #e3f2fd; border-radius: 10px; background: white; }
+        .hint { font-size: 13px; color: #888; margin-top: 5px; }
+
+        .btn { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; border: none; padding: 15px 40px; border-radius: 25px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4); }
+
+        .features { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e3f2fd; }
+        .feature { display: flex; align-items: center; margin: 10px 0; color: #555; font-size: 14px; }
+        .feature-icon { margin-right: 10px; font-size: 16px; }
+
+        .flash-messages { margin: 20px 0; padding: 15px; background: #ffebee; color: #c62828; border-radius: 10px; border: 1px solid #ffcdd2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🪐</div>
+        <h1>Анализатор Марса</h1>
+        <p class="subtitle">Загрузите снимки для автоматического обнаружения ледяных шапок</p>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('analyze') }}" enctype="multipart/form-data">
+            <div class="upload-area">
+                <input type="file" name="file" class="file-input" accept=".jpg,.jpeg,.png,.tiff,.bmp" multiple required>
+                <p class="hint">Вы можете выбрать сразу несколько файлов</p>
+            </div>
+            <button type="submit" class="btn">🔍 Проанализировать данные</button>
+        </form>
+
+        <div class="features">
+            <div class="feature"><span class="feature-icon">❄️</span>Мульти-загрузка изображений</div>
+            <div class="feature"><span class="feature-icon">📊</span>Расчет площади покрытия</div>
+            <div class="feature"><span class="feature-icon">🛰️</span>Автоматический анализ</div>
+        </div>
+    </div>
+</body>
+</html>
